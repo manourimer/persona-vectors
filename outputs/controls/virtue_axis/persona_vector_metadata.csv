@@ -1,0 +1,7 @@
+trait,layer,vector_path,n_positive,n_negative,vector_method,normalization,hidden_dim
+virtue_axis,16,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/controls/virtue_axis/persona_vectors/virtue_axis_layer16.npy,96,61,difference_of_means,unit_norm,3840
+virtue_axis,24,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/controls/virtue_axis/persona_vectors/virtue_axis_layer24.npy,96,61,difference_of_means,unit_norm,3840
+virtue_axis,28,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/controls/virtue_axis/persona_vectors/virtue_axis_layer28.npy,96,61,difference_of_means,unit_norm,3840
+virtue_axis,32,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/controls/virtue_axis/persona_vectors/virtue_axis_layer32.npy,96,61,difference_of_means,unit_norm,3840
+virtue_axis,40,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/controls/virtue_axis/persona_vectors/virtue_axis_layer40.npy,96,61,difference_of_means,unit_norm,3840
+virtue_axis,47,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/controls/virtue_axis/persona_vectors/virtue_axis_layer47.npy,96,61,difference_of_means,unit_norm,3840

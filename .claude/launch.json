@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "setup-check",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["scripts/check_setup.py"],
+      "port": null
+    },
+    {
+      "name": "pytest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "pytest"],
+      "port": null
+    },
+    {
+      "name": "docs-server",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8123", "--directory", "docs"],
+      "port": 8123
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+layer,projected_trait,between_item_var,within_item_var,total_var,within_item_sd,between_item_sd,variance_ratio,reliability_1,reliability_2,reliability_3,reliability_4,reliability_5,n_items_used,clamped_negative
+32,honesty,1101778.692676883,0.0,1101778.692676883,0.0,1049.6564641238022,inf,1.0,,1.0,,,204,False
+32,harmlessness,1981391.6389247836,0.0,1981391.6389247836,0.0,1407.6191384478911,inf,1.0,,1.0,,,204,False
+32,fairness,1616898.777761999,0.0,1616898.777761999,0.0,1271.5733473779635,inf,1.0,,1.0,,,204,False
+32,compassion,775421.3231932122,0.0,775421.3231932122,0.0,880.5801060625956,inf,1.0,,1.0,,,204,False

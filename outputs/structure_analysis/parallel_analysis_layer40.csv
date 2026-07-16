@@ -1,0 +1,5 @@
+component,observed_eigenvalue,random_eigenvalue_95th,random_eigenvalue_mean,retained
+PC1,2.137882,1.248644,1.158861,True
+PC2,1.251462,1.092117,1.040039,True
+PC3,0.603231,0.997710,0.952057,False
+PC4,0.007425,0.922176,0.849043,False

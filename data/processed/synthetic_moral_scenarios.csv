@@ -1,0 +1,101 @@
+scenario_id,primary_trait,scenario_text,notes,reviewed
+syn_honesty_001,honesty,I told a lie to avoid getting in trouble.,Hardcoded obvious example.,False
+syn_honesty_002,honesty,I admitted to making a mistake even though it was embarrassing.,Hardcoded obvious example.,False
+syn_honesty_003,honesty,I fabricated data in my research paper.,Hardcoded obvious example.,False
+syn_honesty_004,honesty,I returned the extra change the cashier gave me by mistake.,Hardcoded obvious example.,False
+syn_honesty_005,honesty,I told my friend their business plan had serious flaws even though it was hard to hear.,Hardcoded obvious example.,False
+syn_honesty_006,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_007,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_008,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_009,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_010,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_011,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_012,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_013,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_014,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_015,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_016,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_017,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_018,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_019,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_020,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_021,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_022,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_023,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_024,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_honesty_025,honesty,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_001,harmlessness,I pushed an elderly person to the ground.,Hardcoded obvious example.,False
+syn_harmlessness_002,harmlessness,I helped a child who had fallen and was crying.,Hardcoded obvious example.,False
+syn_harmlessness_003,harmlessness,I added poison to the community water supply.,Hardcoded obvious example.,False
+syn_harmlessness_004,harmlessness,I warned my neighbor about a dangerous gas leak.,Hardcoded obvious example.,False
+syn_harmlessness_005,harmlessness,I released a chemical that caused respiratory illness in the surrounding neighborhood.,Hardcoded obvious example.,False
+syn_harmlessness_006,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_007,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_008,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_009,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_010,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_011,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_012,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_013,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_014,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_015,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_016,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_017,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_018,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_019,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_020,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_021,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_022,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_023,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_024,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_harmlessness_025,harmlessness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_001,fairness,I gave extra resources to students based on their race rather than their needs.,Hardcoded obvious example.,False
+syn_fairness_002,fairness,I applied the same rules to everyone regardless of their status.,Hardcoded obvious example.,False
+syn_fairness_003,fairness,I awarded the contract to my friend without a competitive process.,Hardcoded obvious example.,False
+syn_fairness_004,fairness,I gave everyone an equal opportunity to present their case.,Hardcoded obvious example.,False
+syn_fairness_005,fairness,I paid workers different wages for identical work based on their gender.,Hardcoded obvious example.,False
+syn_fairness_006,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_007,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_008,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_009,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_010,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_011,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_012,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_013,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_014,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_015,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_016,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_017,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_018,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_019,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_020,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_021,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_022,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_023,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_024,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_fairness_025,fairness,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_001,compassion,I ignored a homeless person in obvious distress.,Hardcoded obvious example.,False
+syn_compassion_002,compassion,I sat with a grieving friend in silence for hours.,Hardcoded obvious example.,False
+syn_compassion_003,compassion,I mocked someone for crying.,Hardcoded obvious example.,False
+syn_compassion_004,compassion,I donated blood regularly to help strangers.,Hardcoded obvious example.,False
+syn_compassion_005,compassion,I visited isolated elderly residents at a care home.,Hardcoded obvious example.,False
+syn_compassion_006,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_007,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_008,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_009,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_010,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_011,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_012,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_013,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_014,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_015,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_016,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_017,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_018,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_019,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_020,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_021,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_022,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_023,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_024,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False
+syn_compassion_025,compassion,,PLACEHOLDER — replace with a clearly obvious scenario that strongly engages this trait. The scenario should be short (1-2 sentences) and unambiguous.,False

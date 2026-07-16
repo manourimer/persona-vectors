@@ -1,0 +1,4 @@
+layer,n_items_used_for_center,activation_dim,mean_activation_norm,mean_activation_path,centering_scope,timestamp_utc
+32,160,3840,62317.578125,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/synthetic_projection/centering/mean_activation_layer32.npy,ethics_projection_items_by_layer,2026-07-15T01:11:26.768847+00:00
+40,160,3840,74743.1640625,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/synthetic_projection/centering/mean_activation_layer40.npy,ethics_projection_items_by_layer,2026-07-15T01:11:26.768954+00:00
+47,160,3840,150552.8125,/Users/manouchehrrimer/Desktop/BlueDot_Perona_Vector_Project/outputs/synthetic_projection/centering/mean_activation_layer47.npy,ethics_projection_items_by_layer,2026-07-15T01:11:26.769036+00:00

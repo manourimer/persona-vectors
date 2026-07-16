@@ -1,0 +1,29 @@
+[
+  {
+    "layer":32,
+    "n_items_used_for_center":160,
+    "activation_dim":3840,
+    "mean_activation_norm":62317.578125,
+    "mean_activation_path":"\/Users\/manouchehrrimer\/Desktop\/BlueDot_Perona_Vector_Project\/outputs\/synthetic_projection\/centering\/mean_activation_layer32.npy",
+    "centering_scope":"ethics_projection_items_by_layer",
+    "timestamp_utc":"2026-07-15T01:11:26.768847+00:00"
+  },
+  {
+    "layer":40,
+    "n_items_used_for_center":160,
+    "activation_dim":3840,
+    "mean_activation_norm":74743.1640625,
+    "mean_activation_path":"\/Users\/manouchehrrimer\/Desktop\/BlueDot_Perona_Vector_Project\/outputs\/synthetic_projection\/centering\/mean_activation_layer40.npy",
+    "centering_scope":"ethics_projection_items_by_layer",
+    "timestamp_utc":"2026-07-15T01:11:26.768954+00:00"
+  },
+  {
+    "layer":47,
+    "n_items_used_for_center":160,
+    "activation_dim":3840,
+    "mean_activation_norm":150552.8125,
+    "mean_activation_path":"\/Users\/manouchehrrimer\/Desktop\/BlueDot_Perona_Vector_Project\/outputs\/synthetic_projection\/centering\/mean_activation_layer47.npy",
+    "centering_scope":"ethics_projection_items_by_layer",
+    "timestamp_utc":"2026-07-15T01:11:26.769036+00:00"
+  }
+]

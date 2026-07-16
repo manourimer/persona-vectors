@@ -1,0 +1,5 @@
+component,eigenvalue,explained_variance_ratio,cumulative_variance
+PC1,3.758548,0.939637,0.939637
+PC2,0.150523,0.037631,0.977268
+PC3,0.062155,0.015539,0.992806
+PC4,0.028775,0.007194,1.000000

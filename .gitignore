@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+.env
+
+# Raw data cache — redownloaded via scripts/build_ethics_sample.py (see README Stage 1)
+data/raw/
+
+# Large regeneratable model outputs: raw per-item activation caches (GPU-only,
+# binary, not human-reviewable). Persona vectors, projections, and result
+# tables derived from these ARE tracked, since they're small and reproduce
+# the paper's numbers without needing GPU access.
+**/activations/
+outputs/projections/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.idea/
+.pytest_cache/
+
+# OS
+.DS_Store

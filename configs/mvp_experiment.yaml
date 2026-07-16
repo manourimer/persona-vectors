@@ -1,0 +1,600 @@
+experiment:
+  name: persona_vectors_mvp
+  description: >
+    MVP experiment: persona-vector projections as a psychometric instrument
+    for moral character (honesty, harmlessness, fairness, compassion) in
+    Gemma-3-12B, evaluated against the ETHICS benchmark.
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+model:
+  name: google/gemma-3-12b-it
+  dtype: bfloat16
+
+  # Layer selection
+  # target_layer is a development placeholder used until held-out validation
+  # selects the best layer. It must NOT be treated as a validated choice.
+  # Layer indices are zero-indexed (layer 0 = embedding / first transformer block).
+  # Selected by held-out validation (Stage 2B): layer 32 (67% depth) gives
+  # strong AUC across all four traits and sits in the theoretically motivated
+  # middle-to-late range. Layers 40 and 47 are retained as comparison points.
+  target_layer: 32
+  comparison_layers: [40, 47]
+  layer_indexing: zero_indexed
+
+  # Candidate layers evaluated during held-out vector validation (Stage 2B).
+  # Spanning early, mid, and late representations across 48 total layers.
+  candidate_layers_for_validation: [16, 24, 28, 32, 40, 47]
+  layer_selection_note: >
+    The final target layer must be selected by held-out persona-vector
+    validation (e.g. contrastive accuracy on a held-out description set),
+    not assumed in advance. target_layer is used only for MVP development runs.
+
+# ---------------------------------------------------------------------------
+# Construct space
+# ---------------------------------------------------------------------------
+# These are the project's MEASUREMENT CONSTRUCTS — not ETHICS categories.
+# See configs/traits.yaml for full definitions.
+traits:
+  path: configs/traits.yaml
+  names:
+    - honesty
+    - harmlessness
+    - fairness
+    - compassion
+
+# ---------------------------------------------------------------------------
+# Source dataset
+# ---------------------------------------------------------------------------
+# ETHICS benchmark categories are source-dataset labels describing how items
+# were collected. They are NOT the same as the project's moral traits.
+# Any ETHICS split can yield items engaging any of the four construct traits.
+dataset:
+  name: hendrycks/ethics
+  n_items: 300
+  split: test
+
+  # ETHICS source splits included in the MVP item bank — dataset labels only.
+  #
+  # EXCLUDED by default:
+  #   utilitarianism — many items are hedonic preference comparisons
+  #     (e.g. "going on vacation vs. not going") rather than situations that
+  #     cleanly engage a moral disposition. The split has no label column and
+  #     its paired format (baseline / less_pleasant) does not map naturally
+  #     onto the four construct traits. Re-add here if you want to explore it.
+  #   virtue — items pair a situation with a single trait word via [SEP].
+  #     After deduplication to unique situations all labels are 1 (trait fits),
+  #     leaving no negative-valence items. The trait words also overlap with
+  #     philosophical virtue categories that differ from this project's
+  #     construct labels. Re-add here if you want to explore it.
+  ethics_splits:
+    - commonsense
+    - deontology
+    - justice
+
+# ---------------------------------------------------------------------------
+# Annotation pilot
+# ---------------------------------------------------------------------------
+# Annotate a small pilot subset first to verify the rubric before committing
+# to all 300 items.
+annotation_pilot:
+  pilot_n_items: 50
+  pilot_stratify_by_source_split: true
+  # Uses the top-level random_seed unless overridden here
+  pilot_random_seed: null  # null → inherit from random_seed
+
+  # Documentation-only targets (not enforced in code).
+  # After pilot annotation, inspect whether each trait has enough items.
+  minimum_items_per_trait_target: 25
+
+  # Fallback option: if the broader 3-split sample yields poor per-trait
+  # coverage after annotation, restrict the MVP item bank to commonsense only,
+  # which tends to produce richer moral-disposition scenarios.
+  # This is a diagnostic option, NOT the default.
+  allow_commonsense_only_mvp: true
+
+# ---------------------------------------------------------------------------
+# Annotation
+# ---------------------------------------------------------------------------
+# Valid labels for primary_trait during item annotation.
+# primary_trait must be one of the four construct traits, or one of the
+# special values below.  ETHICS split names are never valid trait labels.
+#
+# not_applicable : item does not engage any of the four target traits
+#                  (e.g. purely factual, aesthetic, or preference-based)
+# unclear        : annotator cannot confidently assign a primary trait
+annotation:
+  valid_primary_traits:
+    - honesty
+    - harmlessness
+    - fairness
+    - compassion
+    - not_applicable
+    - unclear
+  # secondary_traits are restricted to the four construct traits only
+  valid_secondary_traits:
+    - honesty
+    - harmlessness
+    - fairness
+    - compassion
+  valid_confidence_levels:
+    - high
+    - medium
+    - low
+
+# ---------------------------------------------------------------------------
+# Item annotation schema (reference — enforced in src/config.py)
+# ---------------------------------------------------------------------------
+item_annotation_schema:
+  source_dataset: str        # e.g. "hendrycks/ethics"
+  source_split: str          # e.g. "deontology" | "justice" | "commonsense"
+  primary_trait: str         # one of the six valid_primary_traits above
+  secondary_traits: list     # optional, subset of the four construct traits only
+  annotation_confidence: str # "high" | "medium" | "low"
+  annotation_notes: str      # free-text rationale
+  keep_for_mvp: bool         # False for not_applicable / unclear items
+
+# ---------------------------------------------------------------------------
+# Vector construction
+# ---------------------------------------------------------------------------
+# These settings govern how persona vectors are built in Stage 2B+.
+# Vectors are NOT constructed from the ETHICS item bank.  The ETHICS items
+# are used later for projection / reliability testing only.
+#
+# Methodology (mirrors the Persona Vectors paper):
+#   1. Run the target model under positive and negative system prompts.
+#   2. Collect response-token activations for each prompt × question pair.
+#   3. Score and filter responses with a trait judge.
+#   4. Compute the vector as mean(positive activations) − mean(negative activations).
+#   5. Validate on the held-out question split before any ETHICS projection.
+vector_construction:
+  # Algorithm for computing the persona vector from filtered activations.
+  vector_method: difference_of_means
+
+  # Which token positions to use when extracting activations for vector construction.
+  # "response_tokens" = average over the model's generated response tokens.
+  # This is appropriate for capturing how the model expresses a trait in its output.
+  # Contrast with "last_prompt_token" which is used for ETHICS item projection
+  # (monitoring mode) — see monitoring_token_position_later below.
+  activation_source_for_vector_extraction: response_tokens
+
+  # Token position used later when projecting ETHICS items onto the persona vectors.
+  # At monitoring/projection time we read a single activation from the last prompt
+  # token rather than averaging over a generated response.  This is set here as a
+  # record of intent but is not used until Stage 3 (activation extraction).
+  monitoring_token_position_later: last_prompt_token
+
+  normalize_vectors: true
+  heldout_validation_required: true
+
+  # Artifact counts (must match configs/trait_vector_artifacts.yaml)
+  n_system_prompt_pairs_per_trait: 5
+  n_elicitation_questions_per_trait: 40
+  n_extraction_questions_per_trait: 20   # used to generate activations for vector fitting
+  n_validation_questions_per_trait: 20   # held out; used for contrastive accuracy check
+
+  # Reuse the layer candidates already defined under model.candidate_layers_for_validation.
+  # The best layer is selected by held-out contrastive accuracy, not assumed in advance.
+  candidate_layers: use_model_candidate_layers
+
+  # Response filtering before vector computation.
+  # Responses are scored by a trait judge (0–100); only those above threshold are kept.
+  response_filtering:
+    use_trait_judge_scores: true
+    positive_threshold: 50   # keep positive-prompt responses scoring >= 50
+    negative_threshold: 50   # keep negative-prompt responses scoring <= 50
+
+# ---------------------------------------------------------------------------
+# Contrast prompt and evaluation artifact bank
+# ---------------------------------------------------------------------------
+# Path to the YAML file containing system prompts, elicitation questions, and
+# evaluation rubrics used for persona-vector construction and validation.
+# These artifacts are entirely separate from the ETHICS item bank.
+vector_artifacts:
+  path: configs/trait_vector_artifacts.yaml
+
+# ---------------------------------------------------------------------------
+# Stage 2B — runtime settings for response generation and activation extraction
+# ---------------------------------------------------------------------------
+# These settings govern the GPU forward passes on Modal.
+#
+# activation_token_scope: "response_tokens"
+#   Activations are averaged over the response tokens generated by the model.
+#   This is the token scope used for persona-VECTOR EXTRACTION.
+#   It is different from the "last_prompt_token" scope used later when projecting
+#   ETHICS items onto the persona vectors (Stage 3+, monitoring mode).
+#
+# ETHICS items are NOT used in Stage 2B.
+# ETHICS projection/reliability comes after the persona vectors are constructed
+# and validated on the held-out contrast artifact split.
+vector_runtime:
+  # Model used for response generation and activation extraction.
+  # Must match model.name above (or override here for ablations).
+  model_name: google/gemma-3-12b-it
+  device: modal                  # "modal" for GPU inference; "mock" for offline tests
+  dtype: bfloat16
+  max_new_tokens: 256
+  temperature: 0.7
+  top_p: 0.95
+  generation_seed: 42
+  batch_size: 4                  # responses per Modal inference call
+  # Token scope for activation extraction during vector CONSTRUCTION.
+  # "response_tokens" = mean over the generated response token positions.
+  # Compare: Stage 3+ monitoring uses "last_prompt_token" for ETHICS items.
+  activation_token_scope: response_tokens
+  activation_pooling: mean_response_token
+  # Reuse the candidate layers defined under model.candidate_layers_for_validation.
+  candidate_layers: use_model_candidate_layers
+  cache_raw_activations: true    # save per-response .npy files under outputs/
+
+# ---------------------------------------------------------------------------
+# Stage 2B — response scoring (trait judge)
+# ---------------------------------------------------------------------------
+# A separate judge model scores each generated response on the 0–100 rubric
+# defined in configs/trait_vector_artifacts.yaml for each trait.
+# Only responses that clearly express the target trait polarity are retained
+# for vector extraction.
+#
+# NO ANTHROPIC API KEY is required.  The judge is an open-source instruction
+# model served via Modal/vLLM — the same infrastructure used for Stage 1d
+# ETHICS annotation (Qwen2.5-7B-Instruct is public; no HuggingFace gate).
+#
+# Judge scores are used ONLY for filtering.  They are not treated as ground
+# truth or included in any scientific analysis.  If scores look noisy, inspect
+# outputs/vector_construction/scored_responses_{split}.csv and adjust
+# thresholds or the judge prompt.
+#
+# Responses that cannot be parsed as valid JSON are assigned trait_score=-1
+# and keep_for_vector_extraction=False (never used for vector construction).
+response_scoring:
+  judge_method: modal_vllm       # "modal_vllm" | "mock"
+  # Same open-source instruction model used for ETHICS annotation.
+  # Qwen2.5-7B-Instruct is ungated — no HuggingFace access request needed.
+  judge_model_name: Qwen/Qwen2.5-7B-Instruct
+  score_min: 0
+  score_max: 100
+  # Positive-pole responses are KEPT if trait_score >= positive_keep_threshold.
+  # Negative-pole responses are KEPT if trait_score <= negative_keep_threshold.
+  positive_keep_threshold: 70
+  negative_keep_threshold: 30
+  strict_json: true              # false → parse failures become unkept (score=-1)
+  batch_size: 8                  # judge prompts per Modal inference call
+
+# ---------------------------------------------------------------------------
+# Stage 2B — held-out vector validation
+# ---------------------------------------------------------------------------
+# Before any ETHICS projection, each candidate trait vector must pass held-out
+# validation on the validation-split elicitation questions.
+#
+# Validation procedure:
+#   1. Generate and score validation-split responses (same pipeline as extraction).
+#   2. Project retained validation activations onto each candidate trait vector.
+#   3. Compute ROC-AUC (positive-pole vs negative-pole projections).
+#   4. Select the layer with the highest mean AUC across all four traits.
+#
+# If a trait vector fails the minimum_auc_target, that is a FINDING — it means
+# the contrastive prompts may be confounded or the selected layer is suboptimal.
+# Do not proceed to ETHICS projection until all trait vectors pass validation.
+vector_validation:
+  metric: roc_auc
+  minimum_auc_target: 0.75
+  also_report:
+    - accuracy
+    - mean_positive_projection
+    - mean_negative_projection
+    - cohens_d
+  # Layer selection criterion: the layer with the highest mean AUC across all traits.
+  select_layer_by: mean_validation_auc_across_traits
+
+# ---------------------------------------------------------------------------
+# Stage 3 — ETHICS projection
+# ---------------------------------------------------------------------------
+# Stage 3 applies the validated persona vectors to the curated ETHICS item
+# bank.  ETHICS items were never used during vector construction (Stage 2B),
+# so this is the first test of whether the vectors generalize to novel moral
+# scenarios.
+#
+# TOKEN SCOPE DISTINCTION — critical:
+#   Stage 2B (vector construction) used RESPONSE TOKENS (mean over generated
+#   response positions).  That scope captures how the model expresses a trait
+#   in its output and is appropriate for difference-of-means vector fitting.
+#
+#   Stage 3 uses LAST_PROMPT_TOKEN.  We present an ETHICS scenario as a
+#   prompt and extract a single residual-stream vector from the last token
+#   of that prompt, before any response is generated.  This is the standard
+#   monitoring / probing scope: it captures how the model internally
+#   represents the scenario rather than how it verbalizes a response.
+#
+# ETHICS items are a held-out measurement set.  They are NOT vector-
+# construction data.  Any pattern observed here is a generalization finding,
+# not a training-set artefact.
+ethics_projection:
+  item_bank_path: data/processed/ethics_curated_mvp.parquet
+  output_dir: outputs/ethics_projection/
+  model_name: google/gemma-3-12b-it
+  # contrast_validation_selected_layer: selected in Stage 2B by held-out AUC on
+  # contrast-prompt artifacts.  This is the methodologically primary layer.
+  target_layer: 32
+  comparison_layers: [40, 47]
+  activation_token_position: last_prompt_token
+  require_validated_vectors: true
+  minimum_vector_auc: 0.75
+  vector_validation_results_path: outputs/vector_construction/vector_validation_results.csv
+  persona_vector_metadata_path: outputs/vector_construction/persona_vector_metadata.csv
+  persona_vector_dir: outputs/vector_construction/persona_vectors/
+  cache_raw_activations: true
+  projection_normalization: vector_unit_norm
+  batch_size: 8
+  dtype: bfloat16
+
+  # ---------------------------------------------------------------------------
+  # Projection preprocessing
+  # ---------------------------------------------------------------------------
+  # Gemma residual-stream activations have a large shared mean direction across
+  # all ETHICS items.  Raw dot products are dominated by this baseline direction
+  # (e.g. the harmlessness vector happened to align with it, making harmlessness
+  # appear highest for ALL items regardless of annotated trait).
+  #
+  # Mean-centering subtracts the cross-item mean activation within each layer
+  # before projection.  This removes the common baseline so that projection
+  # values reflect item-specific deviation from the mean representation.
+  # Mean-centering is standard preprocessing in probing and representation
+  # engineering work and does NOT use ETHICS labels — it is purely geometric.
+  #
+  # Raw projections are preserved for audit and debugging.
+  # Centered projections are the default for all downstream diagnostics and
+  # reliability analyses unless explicitly overridden.
+  projection_preprocessing:
+    mean_center_activations: true
+    centering_scope: ethics_projection_items_by_layer   # mean computed per-layer
+    save_raw_projections: true
+    save_centered_projections: true
+    save_centering_vectors: true   # save mean_activation_layer{N}.npy for auditability
+
+  # ---------------------------------------------------------------------------
+  # Layer comparison
+  # ---------------------------------------------------------------------------
+  # Layer 32 was selected by contrast-prompt validation AUC (Stage 2B).
+  # Layer 40 showed stronger downstream ETHICS projection structure
+  # (higher diagonal dominance on mean-centered projections).
+  # This divergence is a substantive methodological finding: the layer that
+  # best separates contrast artifacts may not be the layer that best captures
+  # novel moral scenarios.  Both layers are retained in the analysis.
+  layer_comparison:
+    enabled: true
+    contrast_validation_selected_layer: 32
+    downstream_candidate_layers: [32, 40, 47]
+    metrics:
+      - diagonal_dominance
+      - matching_trait_margin
+      - projection_correlation
+      - near_constant_warning
+      - dominant_vector_warning
+
+# ---------------------------------------------------------------------------
+# Stage 4A: Projection structure analysis (RQ1)
+#
+# RQ1: Do the four morally relevant persona-vector projections behave like
+# one latent "morality" dimension, or several separable dimensions?
+#
+# Uses mean-centered ETHICS projections from Stage 3.
+# Raw projection magnitudes are NOT used for main structure analysis
+# (large shared activation mean dominates raw dot products).
+#
+# Factor analysis with only four observed variables is severely limited:
+# at most 2 factors are identifiable without Heywood cases. Interpret
+# PCA, correlation structure, and effective dimensionality as primary
+# evidence; factor analysis results are supplementary and tentative.
+# ---------------------------------------------------------------------------
+structure_analysis:
+  input_projection_wide_path: outputs/ethics_projection/ethics_trait_projections_centered_wide.parquet
+  input_projection_long_path: outputs/ethics_projection/ethics_trait_projections_centered_long.parquet
+  output_dir: outputs/structure_analysis/
+  layers: [32, 40, 47]
+  primary_layer: 32
+  downstream_best_layer: 40
+  projection_columns:
+    - projection_honesty
+    - projection_harmlessness
+    - projection_fairness
+    - projection_compassion
+  standardize_projections: true
+  run_pca: true
+  run_parallel_analysis: true
+  run_factor_analysis: true
+  factor_analysis_max_factors: 4
+  min_eigenvalue_kaiser_threshold: 1.0
+  random_seed: 42
+
+# ---------------------------------------------------------------------------
+# Stage 4B: Reliability variant generation (RQ2)
+#
+# RQ2: Are persona-vector projections stable when the same moral situation
+# is reworded or reframed?
+#
+# Variants are NOT new moral items — they are alternate presentations of the
+# same underlying scenario.  The original item's primary_trait annotation is
+# inherited by all variants; no new annotation is required.
+#
+# Paraphrases must preserve the same moral situation, actors, and stakes.
+# Semantic-equivalence checks are imperfect heuristics; human review of
+# flagged variants is required before using them in reliability analysis.
+#
+# Framing conditions (first_person, third_person) are supported in the schema
+# but deferred from MVP.  Only neutral framing is generated by default.
+# Enable additional framing by adding to framing_conditions (not optional_).
+# ---------------------------------------------------------------------------
+reliability_variants:
+  input_item_bank_path: data/processed/ethics_curated_mvp.parquet
+  output_dir: data/processed/reliability_variants/
+  include_original: true
+  n_paraphrases_per_item: 3
+  framing_conditions:
+    - neutral
+  optional_framing_conditions:
+    - first_person
+    - third_person
+  generation_method: modal_vllm
+  generation_model_name: Qwen/Qwen2.5-7B-Instruct
+  batch_size: 8
+  random_seed: 42
+  preserve_primary_trait: true
+  require_semantic_equivalence_check: true
+  max_variant_length_ratio: 1.5
+  min_variant_length_ratio: 0.5
+  strict_json: true
+
+# ---------------------------------------------------------------------------
+# Stage 4C: Reliability variant projection
+# Applies the already-validated Stage 2B persona vectors to every accepted
+# reliability variant from Stage 4B.  This is monitoring-style last-prompt-token
+# projection (same as Stage 3) — variants are NOT used to construct vectors.
+# Centered projections are used for reliability analysis; raw projections are
+# preserved for audit.
+# ---------------------------------------------------------------------------
+reliability_projection:
+  input_variant_bank_path: data/processed/reliability_variants/ethics_reliability_variants.parquet
+  output_dir: outputs/reliability_projection/
+  model_name: google/gemma-3-12b-it
+  target_layer: 32
+  comparison_layers: [40, 47]
+  activation_token_position: last_prompt_token
+  require_validated_vectors: true
+  minimum_vector_auc: 0.75
+  vector_validation_results_path: outputs/vector_construction/vector_validation_results.csv
+  persona_vector_metadata_path: outputs/vector_construction/persona_vector_metadata.csv
+  persona_vector_dir: outputs/vector_construction/persona_vectors/
+  cache_raw_activations: true
+  projection_preprocessing:
+    mean_center_activations: true
+    centering_scope: reliability_variants_by_layer
+    save_raw_projections: true
+    save_centered_projections: true
+  batch_size: 8
+  dtype: bfloat16
+
+# Stage 4D: Reliability / Generalizability Analysis
+# Answers RQ2: are persona-vector projections dependable under paraphrase variation?
+# item_id is the object of measurement (the stable moral scenario).
+# paraphrase_id is the incidental facet (different wordings of the same scenario).
+# Original item counts as one variant (paraphrase_id = "original").
+# G coefficient: if we average k paraphrases, how dependable is the reading?
+# Framing reliability can be added later; this is neutral-framing only.
+reliability_analysis:
+  input_long_path: outputs/reliability_projection/reliability_trait_projections_long_centered.parquet
+  input_wide_path: outputs/reliability_projection/reliability_trait_projections_wide_centered.parquet
+  output_dir: outputs/reliability_analysis/
+  layers: [32, 40, 47]
+  primary_layer: 32
+  downstream_best_layer: 40
+  projected_traits:
+    - honesty
+    - harmlessness
+    - fairness
+    - compassion
+  object_of_measurement: item_id
+  facets:
+    - paraphrase_id
+  include_original_as_variant: true
+  minimum_variants_per_item: 2
+  reliability_metrics:
+    - icc_1
+    - icc_2
+    - g_coefficient
+    - within_item_sd
+    - between_item_sd
+    - variance_ratio
+  d_study:
+    enabled: true
+    n_paraphrases_to_evaluate: [1, 2, 3, 4, 5]
+  use_centered_projections: true
+
+# ---------------------------------------------------------------------------
+# Paraphrase / framing (legacy placeholder — superseded by reliability_variants)
+# ---------------------------------------------------------------------------
+paraphrase:
+  n_per_item: 3
+  framing_conditions:
+    - neutral
+    - first_person
+    - third_person
+
+# ---------------------------------------------------------------------------
+# Reproducibility
+# ---------------------------------------------------------------------------
+random_seed: 42
+
+# ---------------------------------------------------------------------------
+# Output directories
+# ---------------------------------------------------------------------------
+output:
+  base_dir: outputs
+  activations_dir: outputs/activations
+  projections_dir: outputs/projections
+  results_dir: outputs/results
+  figures_dir: outputs/figures
+
+# Controls suite: tests whether results are specific to moral persona vectors
+# rather than artifacts of labels, random directions, grouping, preprocessing, or layer choice.
+controls:
+  output_dir: outputs/controls/
+  layers: [32, 40, 47]
+  projected_traits:
+    - honesty
+    - harmlessness
+    - fairness
+    - compassion
+
+  random_vectors:
+    enabled: true
+    n_repeats: 100
+    random_seed: 42
+
+  shuffled_labels:
+    enabled: true
+    n_permutations: 1000
+    random_seed: 42
+
+  permuted_grouping:
+    enabled: true
+    n_permutations: 1000
+    random_seed: 42
+
+  exact_duplicates:
+    enabled: true
+    k_duplicates: 3
+
+  contrast_validation:
+    enabled: true
+
+  synthetic_scenarios:
+    enabled: true
+    n_per_trait: 25
+    reviewed_required_for_main_report: true
+
+  synonym_vectors:
+    enabled: true
+    output_dir: outputs/controls/synonym_vectors/
+    validation_auc_threshold: 0.75
+    full_set:
+      honesty: [truthfulness, truth_telling, transparency]
+      harmlessness: [harm_avoidance, safety, nonmaleficence]
+      fairness: [impartiality, justice, equal_treatment]
+      compassion: [empathy, care, concern_for_suffering]
+    mvp_set:
+      honesty: [truthfulness]
+      harmlessness: [harm_avoidance]
+      fairness: [impartiality]
+      compassion: [empathy]
+    run_mvp_only_by_default: true
+    reuse_existing_ethics_activations: true
+    reuse_existing_reliability_activations: true
+
+  preprocessing:
+    compare_raw_centered: true
+    background_centering: optional
+
+  bootstrap:
+    enabled: true
+    n_bootstrap: 1000

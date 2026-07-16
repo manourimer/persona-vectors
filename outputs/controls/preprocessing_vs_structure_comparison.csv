@@ -1,0 +1,5 @@
+layer,metric,stage4a_value,recomputed_value,difference,match
+32,effective_dimensionality,3.869874124324832,3.869874124324832,0.0,True
+32,first_pc_variance,0.3108221350097923,0.3108221350097923,0.0,True
+32,mean_abs_off_diag_corr,0.0845789794420424,0.0845789794420424,0.0,True
+32,max_abs_trait_corr,0.1863319526972469,0.1863319526972469,0.0,True
