@@ -150,9 +150,23 @@ pc32     = pd.read_csv(ROOT/"outputs/structure_analysis/pca_scores_layer32.csv")
 pc40     = pd.read_csv(ROOT/"outputs/structure_analysis/pca_scores_layer40.csv")
 mvp      = pd.read_parquet(ROOT/"data/processed/ethics_curated_mvp.parquet")
 
+# Verified/recomputed numbers (see scripts/verify_paper_numbers.py) — replaces
+# hardcoded literals for AUCs that previously had no traceable source file.
+import json as _json
+with open(ROOT/"outputs/paper_verification/verified_auc_results.json") as _f:
+    VERIFIED = _json.load(_f)
+cos4vec  = pd.read_csv(ROOT/"outputs/paper_verification/cosine_similarity_4vec_layer32.csv", index_col=0)
+cos8vec  = pd.read_csv(ROOT/"outputs/paper_verification/cosine_similarity_8vec_layer32.csv", index_col=0)
+
+def ci_str(d, decimals=3):
+    """Format a {auc, ci_low, ci_high} dict as 'AUC [low, high]'."""
+    f = f"{{:.{decimals}f}}"
+    return f"{f.format(d['auc'])} [{f.format(d['ci_low'])}, {f.format(d['ci_high'])}]"
+
 def _stratified_diagonal_dominance():
     """Diagonal dominance (annotated trait = top-projecting vector) within each
-    ETHICS source split, holding item format fixed. Two-sided z-test vs. chance=0.25."""
+    ETHICS source split (justice/deontology/commonsense — not the 4-way item-format
+    grouping used elsewhere; see paper §2.3). Two-sided z-test vs. chance=0.25."""
     ethics = pd.read_parquet(ROOT/"outputs/ethics_projection/ethics_trait_projections_centered_wide.parquet")
     proj_cols = ["projection_honesty","projection_harmlessness","projection_fairness","projection_compassion"]
     top = ethics[proj_cols].idxmax(axis=1).str.replace("projection_", "", regex=False)
@@ -269,22 +283,29 @@ def fig_pc1_label():
     ax.hist(o_scores, bins=20, alpha=0.6, color="#059669", label="Morally OK (n=98)")
     ax.hist(w_scores, bins=20, alpha=0.6, color="#DC2626", label="Morally Wrong (n=106)")
     ax.set_xlabel("PC1 Score", fontsize=9); ax.set_ylabel("Count", fontsize=9)
-    ax.set_title("PC1 by Ethical Label\n(overall AUC=0.585, r=0.117)", fontsize=9.5, fontweight="bold")
+    _p = VERIFIED["pooled"]
+    ax.set_title(f"PC1 by Ethical Label\n(overall AUC={_p['auc']:.3f} "
+                 f"[{_p['ci_low']:.2f}, {_p['ci_high']:.2f}], r={_p['pearson_r_with_label']:.3f})",
+                 fontsize=9.5, fontweight="bold")
     ax.legend(fontsize=8); ax.yaxis.grid(True, alpha=0.3); ax.set_axisbelow(True)
 
-    # Right: AUC by format
+    # Right: AUC by format, with bootstrap 95% CI error bars
     ax2 = axes[1]
     formats = ["Justice","Commonsense","EXCUSE","AITA"]
-    aucs_fmt = [0.711, 0.551, 0.535, 0.377]
+    fmt_results = [VERIFIED["by_format"][f] for f in formats]
+    aucs_fmt = [r["auc"] for r in fmt_results]
+    err_lo = [r["auc"] - r["ci_low"] for r in fmt_results]
+    err_hi = [r["ci_high"] - r["auc"] for r in fmt_results]
     bar_c = ["#2563EB","#059669","#D97706","#9333EA"]
-    bars = ax2.barh(formats, aucs_fmt, color=bar_c, alpha=0.85)
+    bars = ax2.barh(formats, aucs_fmt, color=bar_c, alpha=0.85,
+                     xerr=[err_lo, err_hi], capsize=3, error_kw=dict(ecolor="#1F2937", elinewidth=1.1))
     ax2.axvline(0.5, color="#6B7280", linestyle="--", lw=1, label="Chance (0.50)")
-    ax2.set_xlim(0.3, 0.8)
-    ax2.set_xlabel("AUC (PC1 predicting morally wrong)", fontsize=9)
-    ax2.set_title("AUC by Item Format\n(format drives predictive variation)", fontsize=9.5, fontweight="bold")
+    ax2.set_xlim(0.1, 0.95)
+    ax2.set_xlabel("AUC (PC1 predicting morally wrong), 95% CI", fontsize=9)
+    ax2.set_title("AUC by Item Format\n(bootstrap 95% CI, n_boot=5000)", fontsize=9.5, fontweight="bold")
     for bar, v in zip(bars, aucs_fmt):
-        ax2.text(v+0.008, bar.get_y()+bar.get_height()/2, f"{v:.3f}",
-                 va="center", fontsize=8.5, fontweight="bold")
+        ax2.text(v+0.01, bar.get_y()+bar.get_height()/2, f"{v:.3f}",
+                 va="bottom", ha="left", fontsize=8, fontweight="bold")
     ax2.legend(fontsize=8); ax2.xaxis.grid(True, alpha=0.3); ax2.set_axisbelow(True)
 
     fig.tight_layout()
@@ -313,6 +334,26 @@ def fig_8vec_corr():
     ax.set_title("8-Vector Projection Correlation Matrix\n(4 original + 4 synonym, layer 32, ED=1.19)",
                  fontsize=9.5, fontweight="bold")
     ax.axvline(3.5, color="white", lw=1.5); ax.axhline(3.5, color="white", lw=1.5)
+    fig.tight_layout()
+    return fig
+
+def fig_cosine_matrix():
+    """4x4 cosine similarity matrix of the original persona vectors themselves
+    (activation space, layer 32) — vector geometry, not projection scores."""
+    labels = ["Honesty","Harmless.","Fairness","Compassion"]
+    mat = cos4vec.values.astype(float)
+
+    fig, ax = plt.subplots(figsize=(3.6, 3.0))
+    im = ax.imshow(mat, cmap="RdYlBu_r", vmin=-1, vmax=1)
+    plt.colorbar(im, ax=ax, fraction=0.046)
+    ax.set_xticks(range(4)); ax.set_yticks(range(4))
+    ax.set_xticklabels(labels, rotation=40, ha="right", fontsize=8)
+    ax.set_yticklabels(labels, fontsize=8)
+    for i in range(4):
+        for j in range(4):
+            ax.text(j, i, f"{mat[i,j]:.2f}", ha="center", va="center", fontsize=8,
+                    color="white" if abs(mat[i,j])>0.7 else "black")
+    ax.set_title("Vector Cosine Similarity\n(activation space, layer 32)", fontsize=9.5, fontweight="bold")
     fig.tight_layout()
     return fig
 
@@ -348,40 +389,49 @@ def build():
     abstract_text = (
         "We apply the persona vector method of Chen et al. (2025) to four moral character traits — "
         "<b>honesty</b>, <b>harmlessness</b>, <b>fairness</b>, and <b>compassion</b> — in "
-        "Gemma-3-12B-IT, and conduct the first systematic psychometric evaluation of the resulting "
-        "measurement structure. Using a contrastive system-prompt paradigm, we construct "
-        "difference-of-means persona vectors at six transformer layers and project 204 curated "
-        "ETHICS benchmark items onto these vectors. "
+        "Gemma-3-12B-IT, and conduct, to our knowledge, the first systematic psychometric "
+        "evaluation of the resulting measurement structure. Using a contrastive system-prompt "
+        "paradigm, we construct difference-of-means persona vectors at six transformer layers and "
+        "project 204 curated ETHICS benchmark items onto these vectors. "
         "Contrary to our initial hypothesis, structural analysis reveals that the four trait "
-        "projections collapse onto a single dominant dimension at layers 32 and 47 "
+        "projections collapse onto a single dominant measurement dimension at layers 32 and 47 "
         "(effective dimensionality ≈ 1.13, PC1 explaining 94% of variance, mean inter-trait "
-        "|r| = 0.92), with only modest separation at layer 40 (ED = 2.46). "
-        "This single shared axis extends to synonym trait vectors: all 8 vectors "
-        "(4 original + 4 synonym) produced an 8×8 projection correlation matrix with "
-        "ED = 1.19, confirming convergence onto one dimension regardless of trait label. "
+        "projection |r| = 0.92), with only modest separation at layer 40 (ED = 2.46). "
+        "This shared-dimension pattern extends to synonym trait vectors: all 8 vectors "
+        "(4 original + 4 synonym) produced an 8×8 projection-score correlation matrix with "
+        "ED = 1.19, indicating the projections converge onto one dimension regardless of trait "
+        "label — though the persona vectors themselves are only moderately cosine-similar in "
+        "activation space (see §3.2), so this is best read as a measurement-structure finding "
+        "rather than a claim that the underlying vectors are geometrically collinear. "
         "Generalizability theory analysis on 761 paraphrase variants yields G(k=3) ≥ 0.74 — "
         "demonstrating that the method reliably measures <i>something</i>, but that something "
-        "appears to be a shared moral-salience axis rather than four trait-specific directions. "
-        "This shared axis predicts ground-truth ethical labels at AUC = 0.585, with substantial "
-        "variation by item format (justice: AUC = 0.71; AITA: AUC = 0.38) — a format-stratified "
-        "analysis shows this pooled figure conceals a strong, significant signal concentrated in "
-        "justice-format items specifically. "
-        "To rule out that the collapse is an artefact of ETHICS' item-format confound, we built an "
-        "independent, confound-free item bank (160 items, single format, matched upheld/violated "
-        "pairs, zero trait-name leakage): the same collapse replicates almost exactly, including the "
-        "same most-correlated trait pair at the same layers. "
-        "We then directly tested the most likely explanation for the collapse — that it reflects a "
+        "may reflect a shared moral-salience axis rather than four trait-specific directions "
+        "(a tentative interpretation; see §4.3). "
+        "This shared axis predicts ground-truth ethical labels at AUC = 0.585 (95% CI [0.51, 0.66]), "
+        "with substantial variation by item format (justice: AUC = 0.71, 95% CI [0.57, 0.84]; "
+        "AITA: AUC = 0.38, 95% CI [0.19, 0.58]) — a format-stratified analysis shows this pooled "
+        "figure conceals a signal concentrated in justice-format items specifically, though several "
+        "format-level intervals are wide given small per-format samples. "
+        "To test whether the collapse is an artefact of ETHICS' item-format confound, we built an "
+        "independent, format-controlled item bank (160 items, single format, matched upheld/violated "
+        "pairs, zero trait-name leakage) that removes this specific confound: the same collapse "
+        "replicates almost exactly, including the same most-correlated trait pair at the same layers. "
+        "We then directly tested one candidate explanation for the collapse — that it reflects a "
         "generic RLHF-instilled 'aligned vs. unaligned persona' axis rather than trait-specific "
-        "content — by constructing a control vector from deliberately generic, non-trait-specific "
-        "contrastive prompts. This vector validates better than any trait vector (AUC up to 1.00), "
-        "yet is nearly orthogonal to the actual shared collapse direction (cosine ≈ 0 to −0.31 across "
-        "layers) and, at the two layers where the collapse is strongest, its addition <i>increases</i> "
-        "effective dimensionality rather than leaving it unchanged — direct evidence against the "
-        "generic-alignment explanation. "
+        "content — by constructing a control vector (virtue_axis) from deliberately generic, "
+        "non-trait-specific contrastive prompts. This vector separates its own high/low construction "
+        "items more cleanly than any trait vector (AUC up to 1.00 on that internal construction-set "
+        "check, not independent criterion validity), yet is nearly orthogonal to the actual shared "
+        "collapse direction (cosine ≈ 0 to −0.31 across layers) and, at the two layers where the "
+        "collapse is strongest, its addition <i>increases</i> effective dimensionality rather than "
+        "leaving it unchanged — evidence against the specific hypothesis that this particular "
+        "virtue-axis direction explains the shared structure, though it does not rule out other "
+        "generic or multidimensional alignment representations. "
         "Our findings formally quantify and extend the cross-trait correlation pattern noted in "
-        "a footnote by Chen et al., establish that the collapse is a robust, confound-independent "
-        "phenomenon, and show that its most natural explanation does not survive direct empirical "
-        "test — leaving the cause of the collapse an open question for AI psychometrics."
+        "a footnote by Chen et al., show that the collapse is not an artefact of the ETHICS "
+        "format–trait confound specifically, and show that this one natural candidate explanation "
+        "does not survive direct empirical test — leaving the precise cause of the collapse an open "
+        "question for AI psychometrics."
     )
     abox = Table([[Paragraph(abstract_text, Abstract)]], colWidths=[W-2*MARGIN-0.4*inch])
     abox.setStyle(TableStyle([
@@ -413,8 +463,10 @@ def build():
     story.append(Paragraph(
         "This work applies the Chen et al. pipeline to four moral character traits central to AI "
         "alignment — <b>honesty</b>, <b>harmlessness</b>, <b>fairness</b>, and <b>compassion</b> — "
-        "and conducts the first systematic psychometric evaluation of the resulting measurement "
-        "structure. Our goal is to assess whether persona vectors can function as a reliable, "
+        "and conducts, to our knowledge, the first systematic psychometric evaluation of the "
+        "resulting measurement structure (a claim scoped to the literature known to us at the "
+        "time of writing; see the Unresolved Issues note on a final search). Our goal is to "
+        "assess whether persona vectors can function as a reliable, "
         "trait-specific psychometric instrument for moral character, or whether they collapse "
         "onto a shared representation.", Body))
 
@@ -434,9 +486,21 @@ def build():
 
     story.append(Paragraph("2.1 Model", SubHead))
     story.append(Paragraph(
-        "We use <b>Gemma-3-12B-IT</b> (Google DeepMind, 2024): 12B parameters, hidden dimension "
-        "d = 3,840, 48 transformer blocks. All forward passes run on NVIDIA A100 GPUs via Modal. "
-        "Activations are extracted as float32 vectors from the residual stream at the "
+        "We use <b>Gemma-3-12B-IT</b> (Gemma Team, Google DeepMind, 2025): 12B parameters, "
+        "hidden dimension d = 3,840, 48 transformer blocks (config <i>num_hidden_layers</i> = 48), "
+        "indexed 0–47. All forward passes run on NVIDIA A100 GPUs via Modal, using Hugging Face "
+        "<i>transformers</i> with <i>output_hidden_states=True</i>, which returns 49 residual-stream "
+        "snapshots per forward pass: index 0 is the embedding output (before block 0), and index i "
+        "(for i = 1…48) is the residual stream immediately after transformer block i−1. We refer to "
+        "a saved activation at \"layer N\" as <i>hidden_states[N]</i> in this indexing — so \"layer 47\" "
+        "is the residual stream after block 46 (the second-to-last of 48 blocks), not after the "
+        "final block (block 47, which would be <i>hidden_states[48]</i>); \"layer 40\" is "
+        "correspondingly after block 39, and so on. "
+        "This is a valid and commonly-used probing point (it captures a late, near-final "
+        "representation) but we note the off-by-one explicitly here since \"layer 47\" could "
+        "otherwise be misread as \"the final block's output,\" which would instead be "
+        "<i>hidden_states[48]</i> (not extracted in this study). "
+        "Activations are extracted as float32 vectors from this residual-stream hook at the "
         "<i>last prompt token</i> for ETHICS projection and <i>mean over response tokens</i> for "
         "vector construction, following Chen et al.", Body))
 
@@ -473,9 +537,25 @@ def build():
         "We project 204 curated ETHICS benchmark items (Hendrycks et al., 2021) onto each "
         "persona vector. Items were curated with ground-truth ethical labels "
         "(1 = morally wrong, 0 = morally OK) and primary trait assignments. "
-        "The dataset spans four item formats: EXCUSE (74 items, 96% honesty), "
-        "justice (53 items, 72% fairness), commonsense (42 items, 60% harmlessness), "
-        "and AITA (35 items, mixed traits). The format–trait confound is a structural property "
+        "This paper uses two distinct groupings of the same 204 items, and we name them "
+        "differently on purpose to avoid conflating them. <b>ETHICS source split</b> "
+        "(<i>source_split</i> in the data: <i>deontology</i>, <i>justice</i>, <i>commonsense</i>) "
+        "is Hendrycks et al.'s own three-way category for how each item was collected (74, 53, "
+        "and 77 items respectively). <b>Item format</b> is our own finer four-way text-pattern "
+        "classification — <i>EXCUSE</i> (74 items, 96% honesty), <i>justice</i> (53 items, 72% "
+        "fairness), <i>commonsense</i> (42 items, 60% harmlessness), and <i>AITA</i> (35 items, "
+        "mixed traits) — derived from scenario text and item ID (§ code: <i>fmt()</i> in the paper "
+        "build script). The two groupings coincide exactly for <i>deontology</i> = <i>EXCUSE</i> "
+        "(the same 74 items under two names — deontology is the ETHICS split name, EXCUSE is our "
+        "format label for its distinctive templated phrasing) and for <i>justice</i> = "
+        "<i>justice</i>, but <b>not</b> for the third: the <i>commonsense</i> source split (77 "
+        "items) splits further into our <i>commonsense</i> <i>format</i> (42 items) and our "
+        "<i>AITA</i> format (35 items, first-person Reddit-style posts), which we separate because "
+        "they differ qualitatively in structure. Tables and figures using per-format AUC (Table 5) "
+        "use the four-way format grouping; Table 7's per-split diagonal dominance uses the "
+        "three-way source-split grouping — the sample sizes differ accordingly (e.g. "
+        "\"commonsense\" is n=42 in Table 5 but n=77 in Table 7) and this is not an error. "
+        "The format–trait confound is a structural property "
         "of the ETHICS benchmark and is reported as a limitation throughout.", Body))
 
     story.append(Paragraph("2.4 Structural Analysis", SubHead))
@@ -515,13 +595,10 @@ def build():
         "structure. Instead they collapse onto a single dominant dimension at layers 32 and 47, "
         "with only partial separation at layer 40.", Body))
 
-    story.append(amber_box(
-        "Data integrity note: An initial structure analysis run in June used stale mock "
-        "activations (dim=64) written before real GPU extraction. The mock run produced "
-        "ED≈3.87 because random projections onto 4 unit vectors are naturally near-orthogonal. "
-        "All results below use the corrected real Gemma-3-12B activations (re-extracted June 29, "
-        "dim=3840). The mock result has been removed from all tables and figures."
-    ))
+    story.append(Paragraph(
+        "All results below use real Gemma-3-12B-IT activations "
+        "(dim=3840); an earlier mock-data run is superseded and discussed in §4.5.",
+        S("DI", parent=Caption, alignment=TA_JUSTIFY, textColor=AMBER, fontSize=8)))
     story.append(Spacer(1, 0.06*inch))
 
     sd = [["Layer","Eff. Dim (max=4)","PC1 Variance","Mean |r|","Max |r|","Most Correlated Pair"]]
@@ -546,8 +623,12 @@ def build():
     story.append(Spacer(1, 0.06*inch))
     story.append(KeepTogether([
         fig_img(fig_corr_heatmap(), width=6.0*inch),
-        Paragraph("Figure 2. Inter-trait correlation matrices at layers 32 (left) and 40 (right). "
-                  "Layer 32: all absolute correlations ≥ 0.87, confirming near-collinear vectors. "
+        Paragraph("Figure 2. Inter-trait <i>projection-score</i> correlation matrices at layers 32 "
+                  "(left) and 40 (right) — Pearson r between how each pair of trait vectors scores "
+                  "the same 204 ETHICS items, not a direct measure of the vectors' own geometry "
+                  "(see Figure 3b for cosine similarity). "
+                  "Layer 32: all absolute projection correlations ≥ 0.87, indicating the four "
+                  "trait projections are highly redundant on this item set. "
                   "Layer 40: more modest correlations, mean |r| = 0.34.", Caption),
     ]))
 
@@ -557,28 +638,54 @@ def build():
         "To test whether the single-axis finding is specific to the four original trait labels, "
         "we constructed four synonym trait vectors (truthfulness, harm_avoidance, impartiality, "
         "empathy) using the identical pipeline. Projecting all 8 vectors onto ETHICS items "
-        "yields an 8×8 correlation matrix with effective dimensionality <b>ED = 1.19</b> and "
-        "PC1 explaining 92% of variance. Every pairwise absolute correlation exceeds 0.75. "
-        "The collapse onto one axis is robust to the choice of trait label.", Body))
+        "yields an 8×8 <i>projection-score</i> correlation matrix with effective dimensionality "
+        "<b>ED = 1.19</b> and PC1 explaining 92% of variance. Every pairwise absolute correlation "
+        "exceeds 0.75. We emphasise <i>projection-score</i> here deliberately: Figure 3 reports "
+        "Pearson correlations between how the 8 vectors score the same 204 items, which is a "
+        "distinct quantity from the cosine similarity between the vectors themselves in activation "
+        "space (Table 3 and Figure 3b report that directly). The projection scores can be highly "
+        "correlated on this item set even where the underlying vectors are only moderately "
+        "cosine-similar — both are true here, and we treat that combination as an interesting "
+        "psychometric, dataset-relative result rather than evidence that the vectors are "
+        "geometrically collinear.", Body))
     story.append(fig_img(fig_8vec_corr(), width=5.0*inch))
-    story.append(Paragraph("Figure 3. 8×8 projection correlation matrix (4 original + 4 synonym vectors, "
-                  "layer 32). White lines separate original from synonym vectors. "
-                  "All vectors project onto essentially the same dimension (ED = 1.19).", Caption))
+    story.append(Paragraph("Figure 3. 8×8 projection-score correlation matrix (4 original + 4 synonym "
+                  "vectors, layer 32; Pearson r of projections across the same 204 ETHICS items). "
+                  "White lines separate original from synonym vectors. "
+                  "All 8 vectors' projections converge onto essentially the same measurement "
+                  "dimension (ED = 1.19) — a statement about projection scores, not vector "
+                  "geometry (cf. Figure 3b).", Caption))
+    story.append(Spacer(1, 0.06*inch))
+    story.append(fig_img(fig_cosine_matrix(), width=4.4*inch))
+    story.append(Paragraph("Figure 3b. Pairwise cosine similarity between the 4 original persona "
+                  "vectors themselves in activation space (layer 32) — a direct measure of vector "
+                  "geometry, independent of any evaluation dataset. Values are far more moderate "
+                  "than the projection correlations in Figure 3, showing that near-collinear "
+                  "vectors are not required to produce near-redundant projection scores on these "
+                  "items.", Caption))
 
-    # Synonym table
+    # Synonym table — Pearson r and cosine columns reload fresh each build from
+    # outputs/controls/synonym_vectors/ (regenerated via run_synonym_vector_controls.py,
+    # 2026-07-16, after an earlier stale-cache bug — see §4.5). Label AUC is
+    # computed directly from data in scripts/verify_paper_numbers.py (previously
+    # a hardcoded, unsourced literal — see Unresolved Issues).
     syn_merged = syn_sim.merge(syn_agr[["synonym_id","pearson_r"]], on="synonym_id")
-    syn_data = [["Synonym","Parent","Cosine to Parent","ETHICS Pearson r","Label AUC"]]
-    label_aucs = {"truthfulness":0.584,"harm_avoidance":0.457,"impartiality":0.550,"empathy":0.381}
+    syn_data = [["Synonym","Parent","Cosine to Parent","ETHICS Pearson r","Label AUC [95% CI]"]]
     for _, r in syn_merged.iterrows():
         pc = f"cosine_{r.parent_trait}"
+        auc_r = VERIFIED["synonym_label_auc"][r.synonym_id]
         syn_data.append([r.synonym_id.replace("_"," ").title(), r.parent_trait.capitalize(),
-                         f"{r[pc]:.3f}", f"{r.pearson_r:.3f}", f"{label_aucs[r.synonym_id]:.3f}"])
+                         f"{r[pc]:.3f}", f"{r.pearson_r:.3f}", ci_str(auc_r)])
     story.append(KeepTogether([
-        stbl(syn_data, col_widths=[1.3*inch,1.0*inch,1.1*inch,1.1*inch,0.85*inch]),
+        stbl(syn_data, col_widths=[1.1*inch,0.85*inch,1.0*inch,1.0*inch,1.55*inch]),
         Spacer(1,3),
-        Paragraph("Table 3. Synonym vector convergent validity (layer 32). "
-                  "Despite moderate cosine similarity, ETHICS projection agreement (Pearson r) "
-                  "and label prediction AUC are near zero, consistent with the single-axis finding.", Caption),
+        Paragraph("Table 3. Synonym vector convergent validity (layer 32). ETHICS projection "
+                  "agreement (Pearson r) is <b>high</b>, consistent with Figure 3's shared-axis "
+                  "finding — despite this, Label AUC (does the synonym's own projection predict "
+                  "the ground-truth ethical label?) stays near chance, mirroring the parent traits' "
+                  "own weak label prediction (Table 5). Cosine similarity to the parent vector is "
+                  "moderate and does not track projection agreement (e.g. impartiality is weakly "
+                  "cosine-similar to fairness yet strongly anti-correlated in projection).", Caption),
     ]))
 
     # 3.3 Reliability
@@ -586,9 +693,16 @@ def build():
     story.append(Paragraph(
         "Although the axis is shared rather than trait-specific, it is <i>reliably</i> measured. "
         "G(k=1) ranges from 0.50 to 0.70; G(k=3) ≥ 0.74 across all trait×layer combinations, "
-        "meeting standard psychometric reliability thresholds. These G-coefficients reflect "
-        "the stability of each item's score on the shared axis across paraphrastic variants — "
-        "not trait specificity.", Body))
+        "meeting standard psychometric reliability thresholds for paraphrase-to-paraphrase "
+        "stability. These G-coefficients reflect only "
+        "the stability of each item's score on the shared axis across paraphrastic variants; they "
+        "are a reliability result, not a validity result. Paraphrase reliability establishes that "
+        "the instrument gives a repeatable reading for the same underlying item — it does not by "
+        "itself establish trait specificity, convergent validity, criterion validity, or that the "
+        "dimension being measured is the intended one. A measure can be highly reliable while "
+        "consistently measuring a shared or unintended construct, which is close to what we find "
+        "here: the axis is reliable, but §3.2–§3.4 and §3.9 are what speak to what it is actually "
+        "measuring.", Body))
 
     rd = [["Layer","Trait","G(k=1)","G(k=2)","G(k=3)","G(k=5)"]]
     for _, r in rel_sum.sort_values(["layer","projected_trait"]).iterrows():
@@ -604,52 +718,91 @@ def build():
     story.append(Spacer(1, 0.06*inch))
     story.append(KeepTogether([
         fig_img(fig_dstudy(), width=5.2*inch),
-        Paragraph("Figure 4. D-study curves at layer 32. G(k=3) ≥ 0.74 for all traits, "
-                  "reflecting consistent measurement of the shared moral-salience axis.", Caption),
+        Paragraph("Figure 4. D-study curves at layer 32. G(k=3) ≥ 0.74 for all traits, showing "
+                  "that scores on the shared dimension are stable across paraphrases. This is a "
+                  "reliability result — it shows the measurement is repeatable, not that it is "
+                  "trait-specific or that \"moral salience\" is the correct label for what's being "
+                  "measured (§4.3).", Caption),
     ]))
 
     # 3.4 What does the axis capture?
     story.append(Paragraph("3.4 What Does the Shared Axis Capture?", SubHead))
+    _pooled = VERIFIED["pooled"]
     story.append(Paragraph(
         "We correlate PC1 scores with ground-truth ethical labels (1=morally wrong, 0=morally OK) "
         "available for all 204 ETHICS items. Overall, PC1 predicts ethical wrongness at "
-        "<b>AUC = 0.585</b> (r = 0.117) — above chance but weak. "
-        "Breaking this down by item format reveals substantial variation:", Body))
+        f"<b>AUC = {ci_str(_pooled)}</b> (95% CI, stratified bootstrap, n_boot=5000; "
+        f"r = {_pooled['pearson_r_with_label']:.3f}) — above chance but weak, and the interval "
+        "excludes 0.5 only narrowly. "
+        "Breaking this down by item format reveals substantial variation, though per-format "
+        "samples are modest (35–74 items) and the resulting intervals are correspondingly wide:", Body))
 
-    fmt_data = [["Item Format","n","AUC","Interpretation"]]
-    for fmt, n, a, interp in [
-        ("Justice", 53, 0.711, "Logical entitlement structure aids the model"),
-        ("Commonsense", 42, 0.551, "Slight signal"),
-        ("EXCUSE", 74, 0.535, "Near chance — many EXCUSE items are non-sequiturs"),
-        ("AITA", 35, 0.377, "Inverted — model favours well-reasoned posts regardless of verdict"),
-    ]:
-        fmt_data.append([fmt, str(n), f"{a:.3f}", interp])
+    fmt_interp = {
+        "Justice": "Highest point estimate; justice items have an explicit logical "
+                   "entitlement structure, which may make them easier for the axis to track — "
+                   "descriptive observation, not a claim about mechanism.",
+        "Commonsense": "Weak, imprecise signal — CI is wide and overlaps chance.",
+        "EXCUSE": "Near chance; qualitatively many EXCUSE items read as non-sequiturs, "
+                  "which may explain the weak signal, though we have not tested this directly.",
+        "AITA": "Point estimate below chance (inverted); consistent with — not proof of — the "
+                "model favouring well-reasoned posts over the benchmark's verdict, but the CI "
+                "is wide enough to include values much closer to chance.",
+    }
+    CellText = S("CellTxt", fontSize=8, textColor=GREY, leading=10, fontName="Helvetica")
+    fmt_data = [["Item Format","n","AUC [95% CI]","Note"]]
+    for fmt in ["Justice", "Commonsense", "EXCUSE", "AITA"]:
+        r = VERIFIED["by_format"][fmt]
+        fmt_data.append([fmt, str(r["n_items"]), ci_str(r), Paragraph(fmt_interp[fmt], CellText)])
     story.append(KeepTogether([
-        stbl(fmt_data, col_widths=[1.0*inch,0.4*inch,0.65*inch,3.2*inch]),
+        stbl(fmt_data, col_widths=[0.95*inch,0.35*inch,1.15*inch,3.4*inch]),
         Spacer(1,3),
-        Paragraph("Table 5. PC1 predicting ground-truth ethical labels by item format. "
-                  "Format explains 15.8% of PC1 variance; the format–trait confound "
-                  "in ETHICS limits interpretation of what the axis represents.", Caption),
+        Paragraph("Table 5. PC1 predicting ground-truth ethical labels by item format, with "
+                  "stratified-bootstrap 95% CIs (5000 resamples, resampling positives/negatives "
+                  "separately within each format). Format explains 15.8% of PC1 variance; the "
+                  "format–trait confound in ETHICS limits interpretation of what the axis "
+                  "represents, and small per-format n means these estimates are imprecise — "
+                  "point estimates should not be over-interpreted format-to-format.", Caption),
     ]))
     story.append(Spacer(1, 0.06*inch))
     story.append(KeepTogether([
         fig_img(fig_pc1_label(), width=6.2*inch),
         Paragraph("Figure 5. Left: PC1 score distribution by ethical label. "
-                  "Right: AUC by item format. Justice items (logically structured) "
-                  "show the strongest signal; AITA items are inverted.", Caption),
+                  "Right: AUC by item format (see Table 5 for 95% CIs). Justice items show the "
+                  "highest point estimate; AITA items show the lowest (below chance).", Caption),
     ]))
     story.append(Paragraph(
-        "The AITA inversion is informative: AITA posts that score high on PC1 tend to be "
-        "well-reasoned narratives where the person is contextually justified — which the model "
-        "encodes as high moral salience — but the benchmark label may still classify the action "
-        "as wrong. This suggests PC1 captures <b>moral salience / reasoning intensity</b> rather "
-        "than moral correctness as defined by the benchmark.", Body))
+        "The AITA inversion is suggestive, though the CI on that format's AUC is wide enough that "
+        "it should be read cautiously: qualitatively, AITA posts that score high on PC1 tend to be "
+        "well-reasoned narratives where the person is contextually justified, while the benchmark "
+        "label may still classify the action as wrong. One plausible reading is that PC1 may "
+        "capture something like <b>moral salience or reasoning intensity</b> — how strongly a "
+        "scenario engages ethical reasoning — rather than moral correctness as defined by the "
+        "benchmark. We present this as a tentative interpretation consistent with the weak pooled "
+        "AUC, the stronger justice-format result, and the inverted AITA result, not as an "
+        "established characterisation of what the axis represents.", Body))
 
     # 3.5 Null controls
     story.append(Paragraph("3.5 Null Distribution Controls", SubHead))
     story.append(Paragraph(
         "Random vector projections confirm the real vectors' reliability is not a geometry "
         "artefact: null G(k=1) < 0.004 vs. real 0.50–0.70. "
+        "The shuffled-label specificity test uses two metrics. <b>Diagonal dominance</b> is the "
+        "fraction of items where the item's own labelled-trait vector gives the highest projection "
+        "among the four (chance = 0.25 for 4 traits). <b>Matching margin</b> is defined per item as "
+        "(projection on the item's own labelled-trait vector) minus (the highest projection among "
+        "the other three trait vectors), averaged across items — positive values mean the labelled "
+        "trait \"wins\" on average, negative values mean some other trait vector scores the item "
+        "higher on average than its own labelled trait does. Both metrics are computed on the "
+        "mean-centred projections (§2.2), and because centring subtracts a separate constant per "
+        "trait column, the <i>absolute</i> value of the matching margin (e.g. roughly −800) is not "
+        "itself a meaningful, zero-calibrated quantity — only its value relative to the "
+        "permutation null below is interpretable. For both metrics, the p-value is the fraction of "
+        "10,000 label-shuffling permutations (item labels randomly reassigned, projection columns "
+        "held fixed) whose metric is ≥ the real value — a one-sided test of whether real trait-label "
+        "alignment exceeds chance. We reviewed the implementation "
+        "(<i>src/controls/shuffled_labels.py</i>) and found the permutation and p-value logic "
+        "correct; we keep the name \"matching margin\" (it accurately describes the quantity) but "
+        "no longer report its raw value without this explanation. "
         "The shuffled-label specificity test is <b>weakly significant</b>: diagonal dominance "
         "p = 0.0226 (real = 0.275, null 95th pct = 0.265, 10,000 permutations), but matching "
         "margin p = 0.0787 (not significant). This indicates marginal trait-label specificity, "
@@ -670,7 +823,9 @@ def build():
 
     story.append(Paragraph(
         "The pooled diagonal-dominance figure above (27.5%) masks substantial heterogeneity "
-        "across ETHICS item formats. Stratifying by source split, holding item format fixed, "
+        "across ETHICS item formats. Stratifying by ETHICS source split (justice, deontology, "
+        "commonsense — recall from §2.3 that the commonsense split itself spans both our "
+        "Commonsense- and AITA-format items) "
         "shows that trait-label alignment is concentrated almost entirely in justice-format "
         "items:", Body))
 
@@ -681,11 +836,13 @@ def build():
     story.append(KeepTogether([
         stbl(dd_data, col_widths=[1.3*inch,0.6*inch,1.5*inch,1.6*inch]),
         Spacer(1,3),
-        Paragraph("Table 7. Diagonal dominance stratified by ETHICS source split, holding item "
-                  "format fixed (two-sided z-test vs. chance=0.25). Justice items show strong, "
+        Paragraph("Table 7. Diagonal dominance stratified by ETHICS source split "
+                  "(two-sided z-test vs. chance=0.25; note n here uses the 3-way source-split "
+                  "grouping, not the 4-way format grouping in Table 5 — see §2.3). Justice items "
+                  "show strong, "
                   "significant trait-label alignment — nearly double the pooled estimate. "
                   "Commonsense items are at or below chance. Deontology is uninformative here "
-                  "because 96% of its items are honesty-labelled (Table 5), leaving little "
+                  "because 96% of its items are honesty-labelled (§2.3), leaving little "
                   "trait variance to test.", Caption),
     ]))
     story.append(Paragraph(
@@ -697,13 +854,16 @@ def build():
         "where the axis carries little or no trait-specific signal.", Body))
 
     # 3.6 Contrast validation
-    story.append(Paragraph("3.6 Contrast Validation: Separating Construction-Set Items", SubHead))
+    story.append(Paragraph("3.6 Internal Construction-Set Separation: Separating Construction-Set Items", SubHead))
     story.append(Paragraph(
         "Persona vectors achieve AUC ≥ 0.80 at layers 32–47 when separating high-persona from "
         "low-persona items drawn from the same contrastive construction distribution. "
-        "This is a near-circular test — the difference-of-means vector maximally separates its "
-        "own training signal — and should not be interpreted as evidence of independent "
-        "generalisation. It confirms only that the pipeline is internally consistent.", Body))
+        "This is <b>internal construction-set separation</b>, not convergent or criterion "
+        "validity — the difference-of-means vector maximally separates its "
+        "own training signal by construction — and should not be interpreted as evidence of "
+        "generalisation to independent items or as trait specificity. It confirms only that the "
+        "pipeline is internally consistent. This is the same category of check as the virtue_axis "
+        "AUC reported in §3.9.", Body))
 
     auc_data = [["Trait","Layer 32","Layer 40","Layer 47"]]
     for t in ["honesty","harmlessness","fairness","compassion"]:
@@ -747,6 +907,35 @@ def build():
         "literal trait-name words appear anywhere, checked programmatically. This bank shares no "
         "format, vocabulary, or construction with either ETHICS or the persona-vector construction "
         "prompts.", Body))
+    story.append(Paragraph(
+        "<b>Construction procedure.</b> All 160 items are hand-authored: the 20 matched pairs per "
+        "trait are written directly as literal text in the build script "
+        "(<i>scripts/build_synthetic_trait_bank.py</i>), not generated by an LLM call within that "
+        "script. Nine drafting rules were followed (documented in full in "
+        "<i>docs/synthetic_item_bank_guidelines.md</i>): uniform single-sentence first-person "
+        "format; matched upheld/violated pairs sharing context; zero literal trait-name leakage; "
+        "single-trait isolation per item; balanced 20/20 labels per trait; mundane rather than "
+        "dramatic scenarios; contextual diversity across pairs; independence from the persona-vector "
+        "construction prompts; and schema compatibility with the ETHICS pipeline. Primary-trait "
+        "membership is assigned by construction — each pair is authored under one of four "
+        "trait-specific lists — rather than by a separate classification step. "
+        "Trait-name leakage is checked programmatically via regex word-boundary matching against "
+        "the exact word list used by the project's own contrastive-prompt audit tool "
+        "(<i>src/vectors/artifact_quality.py</i>): e.g. honesty flags \"honest/honesty/truthful/"
+        "truth/deceptive/lie/lies\"; compassion flags \"compassion/compassionate/empathy/"
+        "empathetic\"; similarly for harmlessness and fairness. A build-time self-check also "
+        "asserts exact row counts (160 total, 40/trait, 20/20 label split) and unique item IDs.", Body))
+    story.append(Paragraph(
+        "<b>Validation limitation.</b> Beyond these programmatic structural and leakage checks, "
+        "there is no independent semantic-quality validation step for this bank — no second-rater "
+        "review and no LLM-based quality pass, unlike the ETHICS-derived item bank's annotation "
+        "pipeline (§2.3) or the contrastive-prompt artifact bank's Stage 2A-review audit (§4.1). "
+        "Each item carries a self-declared \"high\" confidence label from the single author who "
+        "wrote it. We were unable to determine from the repository whether any items were excluded "
+        "or edited during drafting, or whether informal model-assisted drafting preceded the "
+        "hand-authored final text now in the build script; neither is recorded. We report this "
+        "honestly as a limitation rather than implying an independent validation step that did not "
+        "happen.", Body))
 
     synth_struct_data = [
         ["Layer", "Metric", "ETHICS (204 items)", "Synthetic bank (160 items)"],
@@ -784,22 +973,34 @@ def build():
         "constructed vectors is stronger convergent-validity evidence than either result alone.", Body))
 
     # 3.9 Virtue-axis control vector
-    story.append(Paragraph("3.9 Testing the Generic-Alignment Hypothesis: A Virtue-Axis Control Vector", SubHead))
+    story.append(Paragraph("3.9 Testing One Candidate Explanation: A Virtue-Axis Control Vector", SubHead))
     story.append(Paragraph(
-        "The most natural explanation for the single-axis collapse is that all four traits' "
+        "One plausible explanation for the single-axis collapse is that all four traits' "
         "contrastive prompts secretly encode one generic, RLHF-instilled “aligned vs. "
-        "unaligned persona” rather than trait-specific content. We tested this directly by "
+        "unaligned persona” rather than trait-specific content. We tested one specific "
+        "operationalisation of this idea directly by "
         "constructing a control vector (<i>virtue_axis</i>) using the identical Chen et al. "
         "pipeline, but with system prompts deliberately generic — “be a virtuous AI” vs. "
         "“be an unethical AI,” with no mention of honesty, harmlessness, fairness, or "
         "compassion. To isolate the system prompt as the only manipulated variable, the 40 "
         "elicitation questions were not newly written but reused verbatim from the four existing "
-        "trait pools (10 per trait, matching every other vector's construction sample size).", Body))
+        "trait pools (10 per trait, matching every other vector's construction sample size). "
+        "We test this one construction; other operationalisations of \"generic alignment\" "
+        "(different prompt wording, different elicitation questions, or a non-contrastive "
+        "construction method entirely) might behave differently, and our results below speak "
+        "only to this specific vector.", Body))
     story.append(Paragraph(
-        "The resulting vector validated more strongly than any of the four trait vectors "
-        "(held-out AUC 0.898–1.000 across all six candidate layers, reaching 1.000 at layers "
-        "28, 32, and 47) — a generic good-vs-bad persona is, if anything, an easier direction for "
-        "the model to represent cleanly than any specific moral trait.", Body))
+        "The resulting vector separates its own held-out high/low construction items more "
+        "cleanly than any of the four trait vectors separate theirs "
+        "(AUC 0.898–1.000 across all six candidate layers, reaching 1.000 at layers "
+        "28, 32, and 47). We flag explicitly that this AUC is an <b>internal construction-set "
+        "validation</b> — it measures whether virtue_axis separates the very high/low-persona "
+        "items used to build it, the same near-circular check described for the trait vectors in "
+        "§3.6 — and should not be read as independent criterion validity or evidence that "
+        "virtue_axis is a good general-purpose \"AI goodness\" detector outside this "
+        "construction distribution. Within that scope, a generic good-vs-bad persona is, if "
+        "anything, an easier direction for the model to represent cleanly than any specific moral "
+        "trait.", Body))
 
     virt_pc1_data = [
         ["Layer", "cos(virtue_axis, PC1)", "ED: 4 traits", "ED: +virtue_axis (5-vector)", "Δ ED"],
@@ -828,8 +1029,10 @@ def build():
         "fairness (r = 0.98) specifically, and its addition slightly decreases effective "
         "dimensionality — but this is the layer where the original four traits are themselves "
         "least collapsed, not the layers the generic-alignment story needs to explain. Taken "
-        "together, a deliberately generic, independently-validated operationalisation of “AI "
-        "goodness vs. badness” does not explain the axis the four moral traits collapse onto.", Body))
+        "together, this specific, deliberately generic operationalisation of “AI "
+        "goodness vs. badness” — despite separating its own construction items cleanly — does "
+        "not explain the axis the four moral traits collapse onto. We cannot generalise from one "
+        "construction to all possible operationalisations of generic alignment.", Body))
 
     # ── §4 DISCUSSION ────────────────────────────────────────────────────────
     story.append(Paragraph("4. Discussion", SectHead))
@@ -844,14 +1047,14 @@ def build():
         "confirms this: ED ≈ 1.13 at primary layers, with all 8 original and synonym "
         "vectors projecting onto a single dimension (8-vector ED = 1.19, PC1 = 92%).", Body))
     story.append(Paragraph(
-        "The most natural explanation would be that RLHF training has instilled a strong "
+        "One plausible explanation would be that RLHF training has instilled a strong "
         "<i>aligned vs. unaligned persona</i> concept that dominates the residual stream "
         "whenever the model is placed in high- or low-moral-persona mode. The system prompts "
         "for all four traits — regardless of whether they invoke honesty, fairness, or compassion "
         "— all amount to 'be a virtuous AI' vs. 'be an unethical AI,' and on this account the "
         "model would simply be shifting along one dominant, generic alignment axis.", Body))
     story.append(Paragraph(
-        "Two independent pieces of evidence argue against this account, rather than merely "
+        "Two pieces of evidence argue against this specific account, rather than merely "
         "failing to confirm it. First, the Stage 2A-review confound audit — designed specifically "
         "to flag prompts that collapse into generic AI-goodness rather than trait-specific "
         "content — found zero warning- or high-severity findings across all 40 system prompts and "
@@ -863,13 +1066,17 @@ def build():
         "direction (PC1). It does not: cosine similarity to PC1 is near zero at every primary "
         "layer (−0.09 to −0.31), and adding it as a 5th vector <i>increases</i> effective "
         "dimensionality at the two layers where the collapse is strongest, rather than leaving it "
-        "unchanged as a redundant copy of the same axis would. A deliberately generic, "
-        "independently-validated operationalisation of the exact hypothesis fails a direct test "
-        "of it. The collapse appears to be real and specific to something about how the model "
-        "represents these four moral constructs together — not simply a stand-in for overall "
+        "unchanged as a redundant copy of the same axis would. This one deliberately generic "
+        "construction — which separates its own high/low construction items cleanly (an internal "
+        "check, not independent criterion validity; §3.9) — fails a direct test of the specific "
+        "hypothesis it operationalises. The collapse appears to be real and specific to something "
+        "about how the model "
+        "represents these four moral constructs together — not simply a stand-in for this "
+        "particular operationalisation of "
         "RLHF alignment — though what that something is remains an open question this design "
         "cannot resolve on its own (e.g. it does not rule out a different, more specific shared "
-        "direction than the one virtue_axis operationalises, or effects specific to this one "
+        "direction than the one virtue_axis operationalises, a different generic-alignment "
+        "construction behaving differently, or effects specific to this one "
         "model).", Body))
 
     story.append(Paragraph("4.2 The Layer 40 Anomaly", SubHead))
@@ -881,14 +1088,21 @@ def build():
         "this converges to a unified representation. Characterising what the second dimension "
         "at layer 40 captures is a natural direction for future work.", Body))
 
-    story.append(Paragraph("4.3 What the Shared Axis Measures", SubHead))
+    story.append(Paragraph("4.3 What the Shared Axis May Measure (A Tentative Interpretation)", SubHead))
     story.append(Paragraph(
-        "PC1 predicts ground-truth ethical labels at AUC = 0.585 overall, rising to 0.711 "
-        "for justice-format items and falling to 0.377 (inverted) for AITA-format items. "
-        "This pattern suggests the axis captures <i>moral salience</i> — how strongly the "
-        "model enters ethical reasoning mode — rather than moral correctness per se. "
+        f"PC1 predicts ground-truth ethical labels at AUC = {ci_str(VERIFIED['pooled'])} overall "
+        f"(95% CI), rising to {ci_str(VERIFIED['by_format']['Justice'])} "
+        f"for justice-format items and falling to {ci_str(VERIFIED['by_format']['AITA'])} "
+        "(inverted) for AITA-format items — intervals that are wide given format-level sample "
+        "sizes of 35–74 items. "
+        "This pattern is <i>consistent with</i> an interpretation in terms of <i>moral salience</i> "
+        "— how strongly the model engages ethical reasoning for a given scenario — rather than "
+        "moral correctness per se, but the evidence is indirect (a weak pooled AUC plus "
+        "format-dependent variation) and this interpretation remains tentative; we have not "
+        "directly tested salience as a construct against alternative accounts. "
         "The ETHICS benchmark's format–trait confound (each trait appears predominantly in "
-        "one item format) limits how cleanly this can be interpreted from this dataset alone.", Body))
+        "one item format) further limits how cleanly this can be interpreted from this dataset "
+        "alone.", Body))
 
     story.append(Paragraph("4.4 Implications and Limitations", SubHead))
     for pt in [
@@ -911,40 +1125,68 @@ def build():
     ]:
         story.append(Paragraph(f"• {pt}", Bullet))
 
+    story.append(Paragraph("4.5 Reproducibility and Data Integrity", SubHead))
+    story.append(Paragraph(
+        "An initial structure analysis run in June used stale mock activations (dim=64) written "
+        "as a pipeline placeholder before real GPU extraction was available. That mock run "
+        "produced ED ≈ 3.87, an artefact of random projections onto 4 unit vectors being "
+        "naturally near-orthogonal in high dimension — not a finding about the model. All results "
+        "reported in this paper use the corrected real Gemma-3-12B-IT activations (re-extracted "
+        "June 29, dim = 3840); the mock result has been removed from every table, figure, and "
+        "cached intermediate file used by the build. Separately, during this revision we found "
+        "and corrected one genuinely stale cached output: the synonym vector convergent-validity "
+        "control (Table 3) had been computed on 2026-06-29 against an earlier version of the "
+        "ETHICS projection data that was itself regenerated on 2026-07-08; the Pearson-r and "
+        "Label-AUC columns in Table 3 have been recomputed against current data (see §3.2) and "
+        "now agree with the independently-computed 8-vector correlation matrix in Figure 3.", Body))
+
     # ── §5 CONCLUSION ────────────────────────────────────────────────────────
     story.append(Paragraph("5. Conclusion", SectHead))
     story.append(Paragraph(
         "We applied the Chen et al. (2025) persona vector method to four moral character traits "
-        "in Gemma-3-12B-IT and conducted the first systematic psychometric evaluation of the "
-        "resulting measurement structure. Our central finding is that the method reliably "
-        "extracts a single shared moral-valence axis rather than four geometrically distinct "
-        "trait directions: effective dimensionality ≈ 1.13 at layers 32 and 47, with all 8 "
-        "original and synonym vectors converging on this axis. The axis is reliably measured "
-        "(G(k=3) ≥ 0.74) and predicts ethical labels at AUC = 0.585, with format-dependent "
-        "variation suggesting it captures moral salience rather than moral correctness.", Body))
+        "in Gemma-3-12B-IT and conducted, to our knowledge, the first systematic psychometric "
+        "evaluation of the resulting measurement structure. Our central finding is that the "
+        "method reliably produces a single shared moral-valence measurement dimension rather "
+        "than four trait-specific ones: effective dimensionality ≈ 1.13 at layers 32 and 47, "
+        "with all 8 original and synonym vectors' projections converging onto this dimension. "
+        "This is a claim about the measurement structure the vectors produce on these items, not "
+        "a claim that the vectors themselves are geometrically collinear (§3.2 reports direct "
+        "cosine similarities, which are more moderate). The axis is reliably measured "
+        "(G(k=3) ≥ 0.74) and predicts ethical labels at AUC = 0.585 (95% CI [0.51, 0.66]), "
+        "with format-dependent "
+        "variation consistent with — though not proof of — an interpretation in terms of moral "
+        "salience rather than moral correctness; this interpretation remains tentative (§4.3).", Body))
     story.append(Paragraph(
         "Two further results strengthen and sharpen this picture. First, the collapse is not an "
-        "artefact of the ETHICS benchmark's item-format confound: an independent, confound-free "
-        "160-item bank reproduces the same structure almost exactly, down to the same "
-        "most-correlated trait pair at the same layers. Within that bank, the four traits also show "
+        "artefact of the ETHICS benchmark's item-format confound specifically: an independent, "
+        "format-controlled 160-item bank, built to remove that particular confound, reproduces the "
+        "same structure almost exactly, down to the same most-correlated trait pair at the same "
+        "layers — though it cannot rule out other lexical, semantic, or generation-related "
+        "confounds we have not identified. Within that bank, the four traits also show "
         "distinct, non-uniform behaviour — fairness discriminates cleanly in the expected "
         "direction, harmlessness and compassion discriminate but backwards, and honesty shows no "
         "signal at all — indicating the underlying structure is not simply undifferentiated noise. "
-        "Second, we directly tested the most natural explanation for the collapse — a generic "
-        "RLHF-instilled aligned-vs-unaligned persona — by building a control vector from "
-        "deliberately generic contrastive prompts. This vector validates better than any trait "
-        "vector, yet is nearly orthogonal to the actual shared collapse direction and, at the "
-        "layers where the collapse is strongest, its addition increases rather than leaves "
-        "unchanged the projection structure's effective dimensionality.", Body))
+        "Second, we directly tested one natural candidate explanation for the collapse — a generic "
+        "RLHF-instilled aligned-vs-unaligned persona, as operationalised by our specific "
+        "virtue_axis construction — by building a control vector from deliberately generic "
+        "contrastive prompts. This vector separates its own high/low construction items more "
+        "cleanly than any trait vector (an internal validation of that construction distribution, "
+        "not independent criterion validity), yet is nearly orthogonal to the actual shared "
+        "collapse direction and, at the layers where the collapse is strongest, its addition "
+        "increases rather than leaves unchanged the projection structure's effective "
+        "dimensionality.", Body))
     story.append(Paragraph(
         "These findings formally quantify the cross-trait correlation pattern flagged by "
-        "Chen et al., establish that the collapse is a robust, confound-independent phenomenon "
-        "rather than a benchmark artefact, and show that its most natural explanation does not "
-        "survive a direct empirical test designed specifically to confirm it. This is a more "
-        "informative outcome than either a clean confirmation or a simple null result: the "
+        "Chen et al., show that the collapse is not simply an artefact of the ETHICS format–trait "
+        "confound, and show that one natural candidate explanation — this specific virtue_axis "
+        "operationalisation of generic alignment — does not survive a direct empirical test "
+        "designed to confirm it (other generic or multidimensional alignment representations are "
+        "not ruled out). This is a more informative outcome than either a clean confirmation or a "
+        "simple null result: the "
         "contrastive difference-of-means method is measuring something real and reliable about "
         "this model's representation of moral character, but that something is neither four "
-        "trait-specific directions nor a simple stand-in for generic alignment. Whether "
+        "trait-specific directions nor a simple stand-in for this particular operationalisation of "
+        "generic alignment. Whether "
         "finer-grained trait directions exist in the model — and whether orthogonalisation, "
         "supervised probing, or comparison across model families and RLHF regimes could recover "
         "them — remains an open and now more precisely specified question for AI psychometrics "
@@ -959,7 +1201,7 @@ def build():
         "Hendrycks, D., Burns, C., Basart, S., et al. (2021). Aligning AI with shared human values. <i>ICLR 2021</i>.",
         "Turner, A. M., Thiergart, L., Udell, G., et al. (2023). Activation addition: Steering language models without optimization. <i>arXiv:2308.10248</i>.",
         "Zou, A., Phan, L., Chen, S., et al. (2023). Representation engineering: A top-down approach to AI transparency. <i>arXiv:2310.01405</i>.",
-        "Google DeepMind. (2024). Gemma 3 technical report. <i>arXiv:2503.19786</i>.",
+        "Gemma Team, Google DeepMind. (2025). Gemma 3 technical report. <i>arXiv:2503.19786</i>.",
         "Brennan, R. L. (2001). <i>Generalizability Theory</i>. Springer.",
     ]
     for i, r in enumerate(refs):

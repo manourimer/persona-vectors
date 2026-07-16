@@ -1,0 +1,101 @@
+{
+  "pooled": {
+    "auc": 0.5846168656141701,
+    "ci_low": 0.5069310743165191,
+    "ci_high": 0.6627863881401617,
+    "n_pos": 106,
+    "n_neg": 98,
+    "n_boot": 5000,
+    "stable": true,
+    "note": "",
+    "pearson_r_with_label": 0.11708362110997936
+  },
+  "by_format": {
+    "Justice": {
+      "auc": 0.7111436950146628,
+      "ci_low": 0.5674486803519062,
+      "ci_high": 0.843145161290322,
+      "n_pos": 22,
+      "n_neg": 31,
+      "n_boot": 5000,
+      "stable": true,
+      "note": "",
+      "n_items": 53
+    },
+    "Commonsense": {
+      "auc": 0.5506172839506173,
+      "ci_low": 0.37530864197530867,
+      "ci_high": 0.7234567901234568,
+      "n_pos": 27,
+      "n_neg": 15,
+      "n_boot": 5000,
+      "stable": true,
+      "note": "",
+      "n_items": 42
+    },
+    "EXCUSE": {
+      "auc": 0.5346968590211834,
+      "ci_low": 0.40175310445580714,
+      "ci_high": 0.6654674945215483,
+      "n_pos": 37,
+      "n_neg": 37,
+      "n_boot": 5000,
+      "stable": true,
+      "note": "",
+      "n_items": 74
+    },
+    "AITA": {
+      "auc": 0.37666666666666665,
+      "ci_low": 0.19,
+      "ci_high": 0.58,
+      "n_pos": 20,
+      "n_neg": 15,
+      "n_boot": 5000,
+      "stable": true,
+      "note": "",
+      "n_items": 35
+    }
+  },
+  "synonym_label_auc": {
+    "truthfulness": {
+      "auc": 0.44724682325760495,
+      "ci_low": 0.37052368117058143,
+      "ci_high": 0.5253200808625337,
+      "n_pos": 106,
+      "n_neg": 98,
+      "n_boot": 5000,
+      "stable": true,
+      "note": ""
+    },
+    "harm_avoidance": {
+      "auc": 0.44936465152098576,
+      "ci_low": 0.37167886022333463,
+      "ci_high": 0.5283018867924528,
+      "n_pos": 106,
+      "n_neg": 98,
+      "n_boot": 5000,
+      "stable": true,
+      "note": ""
+    },
+    "impartiality": {
+      "auc": 0.5916442048517521,
+      "ci_low": 0.5136696187909126,
+      "ci_high": 0.6699075856757798,
+      "n_pos": 106,
+      "n_neg": 98,
+      "n_boot": 5000,
+      "stable": true,
+      "note": ""
+    },
+    "empathy": {
+      "auc": 0.4107624181748171,
+      "ci_low": 0.3326915671929149,
+      "ci_high": 0.48816182133230646,
+      "n_pos": 106,
+      "n_neg": 98,
+      "n_boot": 5000,
+      "stable": true,
+      "note": ""
+    }
+  }
+}
