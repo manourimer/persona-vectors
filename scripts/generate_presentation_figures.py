@@ -20,14 +20,32 @@ OUT_DIR = Path(__file__).resolve().parent.parent / "docs" / "presentation_figure
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 STATS_PATH = OUT_DIR / "bootstrap_stats.json"
 
-BLUE = "#2563EB"
-GREEN = "#059669"
-AMBER = "#D97706"
-PURPLE = "#9333EA"
-GREY = "#6B7280"
-DBLUE = "#1E3A5F"
+# Warm, cream-companion categorical palette (matches docs/slides.html's
+# off-yellow background + purple accent). Variable names kept as-is so the
+# rest of the script (which assigns semantic roles like "the collapse
+# direction" or "no signal" to specific constants) doesn't need touching.
+BLUE = "#6b3f8e"    # plum — deck's accent purple; primary series / Honesty
+GREEN = "#b8863b"   # warm gold — secondary series / Fairness
+AMBER = "#a8532e"   # terracotta — tertiary series / Harmlessness
+PURPLE = "#9c5f7a"  # dusty rose — Compassion (distinct from plum accent)
+GREY = "#8a7f68"    # warm taupe — neutral / "no signal"
+DBLUE = "#3d2450"   # dark plum (unused, kept for parity)
 
-ERRBAR_KW = dict(ecolor="#1F2937", elinewidth=1.3, capsize=4, capthick=1.3)
+INK = "#2a2015"
+PAPER = "#fffdf2"
+
+plt.rcParams.update({
+    "figure.facecolor": PAPER,
+    "axes.facecolor": PAPER,
+    "savefig.facecolor": PAPER,
+    "text.color": INK,
+    "axes.labelcolor": INK,
+    "axes.edgecolor": INK,
+    "xtick.color": INK,
+    "ytick.color": INK,
+})
+
+ERRBAR_KW = dict(ecolor=INK, elinewidth=1.3, capsize=4, capthick=1.3)
 
 with open(STATS_PATH) as f:
     STATS = json.load(f)
@@ -71,7 +89,7 @@ def fig2_virtue_axis():
     ax = axes[0]
     cos, cos_err = s["cosine"]["point"], s["cosine"]["err"]
     bars = ax.bar(layers, cos, yerr=cos_err, color=AMBER, zorder=3, error_kw=ERRBAR_KW)
-    ax.axhline(0, color="black", lw=0.8)
+    ax.axhline(0, color=INK, lw=0.8)
     ax.axhspan(0.5, 1.05, color=GREEN, alpha=0.12, zorder=0)
     ax.text(2.35, 0.75, "predicted if\nhypothesis true", fontsize=8, color=GREEN, ha="center", va="center")
     ax.set_ylim(-0.5, 1.05)
@@ -125,8 +143,8 @@ def fig3_not_noise():
 
     fig, ax = plt.subplots(figsize=(8.6, 4.2))
     bars = ax.barh(traits, point, xerr=err, color=bar_colors, zorder=3,
-                    error_kw=dict(ecolor="#1F2937", elinewidth=1.3, capsize=4, capthick=1.3))
-    ax.axvline(0, color="black", lw=1)
+                    error_kw=dict(ecolor=INK, elinewidth=1.3, capsize=4, capthick=1.3))
+    ax.axvline(0, color=INK, lw=1)
     ax.set_xlim(-0.65, 0.65)
     ax.set_xlabel("← discriminates backwards        discriminates as expected →\n(distance from chance, strongest layer per trait)", fontsize=9.5)
     ax.set_title("The four traits are not uniformly collapsed noise —\neach behaves differently on the confound-free bank", fontsize=12, fontweight="bold")
@@ -156,9 +174,9 @@ def fig4_salience_replication():
     neither = ~(df.ethics_p < 0.05) & ~(df.synth_p < 0.05)
 
     for mask, marker, size, alpha, edge in [
-        (both_sig, "o", 190, 1.0, "#1F2937"),
-        (one_sig, "o", 130, 0.85, "#9CA3AF"),
-        (neither, "o", 90, 0.45, "#D1D5DB"),
+        (both_sig, "o", 190, 1.0, INK),
+        (one_sig, "o", 130, 0.85, "#a89c86"),
+        (neither, "o", 90, 0.45, "#d8cfba"),
     ]:
         sub = df[mask]
         colors = [trait_colors[t] for t in sub["trait"]]
@@ -167,8 +185,8 @@ def fig4_salience_replication():
 
     # diagonal (perfect agreement) + chance crosshair
     ax.plot([0.2, 0.85], [0.2, 0.85], linestyle="--", color=GREY, lw=1.2, zorder=2, label="Perfect agreement")
-    ax.axhline(0.5, color="#D1D5DB", lw=1, zorder=1)
-    ax.axvline(0.5, color="#D1D5DB", lw=1, zorder=1)
+    ax.axhline(0.5, color="#d8cfba", lw=1, zorder=1)
+    ax.axvline(0.5, color="#d8cfba", lw=1, zorder=1)
 
     # annotate the honesty sign-flip specifically
     h32 = df[(df.trait == "honesty") & (df.layer == 32)].iloc[0]
@@ -187,11 +205,11 @@ def fig4_salience_replication():
     # legend for significance markers (grey, trait-color-agnostic)
     from matplotlib.lines import Line2D
     sig_legend = [
-        Line2D([0], [0], marker="o", color="w", markerfacecolor="#6B7280", markeredgecolor="#1F2937",
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#8a7f68", markeredgecolor=INK,
                markeredgewidth=1.3, markersize=12, label="Significant in both datasets"),
-        Line2D([0], [0], marker="o", color="w", markerfacecolor="#6B7280", markeredgecolor="#9CA3AF",
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#8a7f68", markeredgecolor="#a89c86",
                alpha=0.85, markersize=10, label="Significant in one dataset"),
-        Line2D([0], [0], marker="o", color="w", markerfacecolor="#6B7280", markeredgecolor="#D1D5DB",
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#8a7f68", markeredgecolor="#d8cfba",
                alpha=0.45, markersize=8, label="Not significant"),
     ]
     leg = ax.legend(handles=sig_legend, fontsize=7.8, loc="lower right", framealpha=1.0)
