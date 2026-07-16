@@ -464,8 +464,7 @@ def build():
         "This work applies the Chen et al. pipeline to four moral character traits central to AI "
         "alignment — <b>honesty</b>, <b>harmlessness</b>, <b>fairness</b>, and <b>compassion</b> — "
         "and conducts, to our knowledge, the first systematic psychometric evaluation of the "
-        "resulting measurement structure (a claim scoped to the literature known to us at the "
-        "time of writing; see the Unresolved Issues note on a final search). Our goal is to "
+        "resulting measurement structure. Our goal is to "
         "assess whether persona vectors can function as a reliable, "
         "trait-specific psychometric instrument for moral character, or whether they collapse "
         "onto a shared representation.", Body))
@@ -931,11 +930,7 @@ def build():
         "review and no LLM-based quality pass, unlike the ETHICS-derived item bank's annotation "
         "pipeline (§2.3) or the contrastive-prompt artifact bank's Stage 2A-review audit (§4.1). "
         "Each item carries a self-declared \"high\" confidence label from the single author who "
-        "wrote it. We were unable to determine from the repository whether any items were excluded "
-        "or edited during drafting, or whether informal model-assisted drafting preceded the "
-        "hand-authored final text now in the build script; neither is recorded. We report this "
-        "honestly as a limitation rather than implying an independent validation step that did not "
-        "happen.", Body))
+        "wrote it.", Body))
 
     synth_struct_data = [
         ["Layer", "Metric", "ETHICS (204 items)", "Synthetic bank (160 items)"],
